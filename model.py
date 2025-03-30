@@ -7,10 +7,24 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from openai import OpenAI  # Assumes you have an OpenAI client library installed
 
+import mysql.connector
+
+# Connect to MySQL
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="samarth@2006",
+    database="users"
+)
+cursor = conn.cursor()
+cursor.execute("SELECT weight, height FROM users")
+rows = cursor.fetchall()
+users_list = [{"weight": row[0], "height": row[1]} for row in rows]
+
 # ---------------------------
 # Data Loading and Preprocessing
 # ---------------------------
-df = pd.read_csv('nutrient_food_with_dietary_category.csv')
+df = pd.read_csv('nutrient.csv')
 
 # Specify the nutritional columns to use
 nutrition_cols = [

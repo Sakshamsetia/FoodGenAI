@@ -14,18 +14,17 @@ def connect_db():
         conn = mysql.connector.connect(**DB_CONFIG)
         return conn
     except mysql.connector.Error as err:
-        print(f"Database Connection Error: {err}")
+        print(f"[ERROR] Database Connection Error: {err}")
         return None
 
 def store_user(user_id, name, gender, age, height=None, weight=None, password=""):
-    """Inserts a new user into the database with name, gender, age, height, weight, and password."""
+    """Inserts a new user into the database."""
     if user_exists(user_id):  
         print(f"[DEBUG] User {user_id} already exists. Skipping insertion.")
         return  
     try:
         conn = connect_db()
         if not conn:
-            print("[ERROR] Database connection failed.")  
             return
         cursor = conn.cursor()
         query = """
@@ -35,31 +34,13 @@ def store_user(user_id, name, gender, age, height=None, weight=None, password=""
         cursor.execute(query, (user_id, name, gender, age, height, weight, password))  
         conn.commit()
         print(f"[SUCCESS] User {user_id} inserted.")  
-        cursor.close()
-        conn.close()
     except mysql.connector.Error as err:
         print(f"[ERROR] Database Error in store_user(): {err}")
-
-
-def store_password(user_id, password):
-    """Stores the user's password in the database."""
-    if not user_exists(user_id):  
-        print(f"[ERROR] User {user_id} does not exist. Cannot store password.")  
-        return
-    try:
-        conn = connect_db()
-        if not conn:
-            print("[ERROR] Database connection failed.")  
-            return
-        cursor = conn.cursor()
-        query = "UPDATE user SET password = %s WHERE user_id = %s"
-        cursor.execute(query, (password, user_id))  
-        conn.commit()
-        print(f"[SUCCESS] Password for User {user_id} updated.")  
-        cursor.close()
-        conn.close()
-    except mysql.connector.Error as err:
-        print(f"[ERROR] Database Error in store_password(): {err}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 def user_exists(user_id):
     """Checks if a user already exists in the database."""
@@ -70,9 +51,44 @@ def user_exists(user_id):
         cursor = conn.cursor()
         cursor.execute("SELECT user_id FROM user WHERE user_id = %s", (user_id,))
         result = cursor.fetchone()
-        cursor.close()
-        conn.close()
         return result is not None
     except mysql.connector.Error as err:
-        print(f"Database Error: {err}")
+        print(f"[ERROR] Database Error in user_exists(): {err}")
         return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+def update_user_info(user_id, field, value):
+    """Updates a specific field (height or weight) for a user."""
+    valid_fields = {"height", "weight"}  # Allowed fields to update
+    if field not in valid_fields:
+        print(f"[ERROR] Invalid field: {field}. Allowed fields: {valid_fields}")
+        return
+    try:
+        conn = connect_db()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        query = f"UPDATE user SET {field} = %s WHERE user_id = %s"
+        cursor.execute(query, (value, user_id))
+        conn.commit()
+        print(f"[SUCCESS] Updated {field} for user {user_id} to {value}.")
+    except mysql.connector.Error as err:
+        print(f"[ERROR] Database Error in update_user_info(): {err}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+def get_user_password(user_id):
+    # Example: Replace with actual MySQL query
+    connection = connect_db()  # Ensure you have a function to connect
+    cursor = connection.cursor()
+    cursor.execute("SELECT password FROM user WHERE user_id = %s", (user_id,))
+    result = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    return result[0] if result else None
